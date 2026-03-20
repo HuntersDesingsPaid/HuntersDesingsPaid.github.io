@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controller Menü | EasySMX X05PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Base Color #771477 corresponds to hsl(300, 71%, 27%) */
+            --h: 300; --s: 71%; --l: 27%; --a: 1;
+            --menu-bg-opacity: 0.95; 
+            
+            --accent-color: hsla(var(--h), var(--s), var(--l), var(--a));
+            --gradient-center: hsla(var(--h), var(--s), var(--l), 0.5);
+            --text-color: #fff;
+            
+            --font-pixel: 'Press Start 2P', cursive;
+            --font-ui: 'Rajdhani', sans-serif;
+
+            --global-hue: 0deg;
+            --global-sat: 100%;
+            --content-scale: 1;
+        }
+
+        * { box-sizing: border-box; user-select: none; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: transparent; 
+            color: var(--text-color);
+            font-family: var(--font-ui);
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        #app-container {
+            position: relative;
+            width: 946px;
+            height: 755px;
+            overflow: hidden;
+        }
+
+        #filter-wrapper {
+            width: 100%; height: 100%;
+            position: relative;
+            filter: hue-rotate(var(--global-hue)) saturate(var(--global-sat));
+            will-change: filter, transform;
+            transform: scale(var(--content-scale));
+            transform-origin: center center;
+            transition: transform 0.1s;
+        }
+
+        iframe { border: none; display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+        
+        #target-frame { z-index: 2; pointer-events: none; }
+
+        /* --- MENU STYLES --- */
+        #settings-menu {
+            position: absolute;
+            top: 50px; bottom: 50px; left: 80px; right: 80px;
+            z-index: 999;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none;
+            
+            /* Initial Hidden State for Animation */
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.2s, transform 0.2s; 
+        }
+
+        /* Bounce Animation Class */
+        #settings-menu.open { 
+            opacity: 1; 
+            pointer-events: all;
+            animation: menuPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes menuPop {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .menu-container {
+            width: 100%; height: 100%;
+            border: 2px solid var(--accent-color);
+            padding: 20px 25px; border-radius: 12px;
+            display: flex; flex-direction: column; 
+            overflow-y: auto; 
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            background: radial-gradient(circle at center, var(--gradient-center) 0%, #050505 100%);
+            scrollbar-width: none;  
+            -ms-overflow-style: none;
+            transition: opacity 0.3s ease;
+        }
+        .menu-container::-webkit-scrollbar { display: none; }
+
+        /* --- NOTIFICATION TOAST --- */
+        #notification-toast {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0); /* Start tiny */
+            z-index: 1000;
+            background: radial-gradient(circle at center, var(--gradient-center) 0%, #050505 100%);
+            border: 2px solid var(--accent-color);
+            padding: 25px 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+            opacity: 0; pointer-events: none;
+            text-align: center;
+            max-width: 450px;
+        }
+
+        /* Toast Entrance */
+        #notification-toast.visible {
+            opacity: 1;
+            animation: toastEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, toastPulse 2s ease-in-out infinite 0.5s;
+        }
+
+        /* Toast Exit */
+        #notification-toast.hiding {
+            animation: toastExit 0.4s ease-in forwards;
+        }
+
+        @keyframes toastEnter {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes toastPulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.03); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes toastExit {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
+        }
+
+        .toast-icon {
+            width: 64px; height: 64px;
+            fill: var(--accent-color);
+            display: block;
+            filter: drop-shadow(0 0 8px rgba(0,0,0,0.6));
+            /* Ensure crisp rendering for custom pixel icons */
+            image-rendering: pixelated; 
+        }
+
+        .toast-title {
+            font-family: var(--font-pixel);
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .toast-desc {
+            font-family: var(--font-ui);
+            color: #ddd;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        /* Nav Bar */
+        .help-bar {
+            display: flex; justify-content: center; align-items: center; gap: 15px;
+            border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 15px;
+            flex-shrink: 0;
+            flex-wrap: wrap; 
+        }
+        .help-group { display: flex; align-items: center; gap: 8px; color: #bbb; font-size: 0.85rem; font-family: var(--font-pixel); }
+        .help-sep { color: #444; font-size: 1.2rem; }
+        .icon-tiny { width: 20px; height: 20px; fill: var(--accent-color); display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+
+        /* Headers */
+        .menu-header {
+            font-family: var(--font-pixel); color: var(--accent-color);
+            font-size: 1.1rem;
+            margin-top: 25px; margin-bottom: 10px;
+            border-bottom: 2px solid var(--accent-color); padding-bottom: 4px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            flex-shrink: 0; text-transform: uppercase;
+        }
+        .menu-header:first-of-type { margin-top: 0; }
+
+        /* Items */
+        .menu-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; 
+            margin-bottom: 5px; border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; background: rgba(255,255,255,0.02);
+            flex-shrink: 0;
+            min-height: 50px; 
+        }
+        .menu-item.selected { background: rgba(255,255,255,0.1); border-color: var(--accent-color); }
+        .menu-item.active-opt { background: var(--accent-color); color: #000; font-weight: bold; text-shadow: none; }
+        .menu-item.active-opt .menu-label { color: #000; text-shadow: none; }
+        
+        .menu-label { font-size: 1.3rem; color: #ddd; display: flex; align-items: center; gap: 10px; }
+        .menu-val { font-weight: bold; font-size: 1.3rem; color: var(--accent-color); }
+
+        .btn-action { justify-content: center; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #fff; margin-top: 12px; font-size: 1.2rem; }
+        .btn-action.selected { background: var(--accent-color); color: #000; text-shadow: none; }
+        .btn-danger { color: #f55; }
+        .btn-danger.selected { background: #d00; color: #fff; border-color: #fff; }
+
+        .btn-row { display: flex; gap: 12px; width: 100%; margin-top: 8px; }
+        .btn-row .menu-item { flex: 1; text-align: center; justify-content: center; margin-top: 0; }
+
+        /* Slider */
+        .slider-wrapper { display: flex; flex-direction: column; align-items: flex-end; width: 50%; }
+        .slider-val-disp { font-size: 1.0rem; color: #aaa; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .slider-track { width: 100%; height: 10px; background: #333; border-radius: 5px; position: relative; cursor: pointer; box-shadow: 0 1px 3px #000; }
+        .slider-fill { height: 100%; background: var(--accent-color); width: 0%; pointer-events: none; border-radius: 5px; }
+        .slider-thumb { 
+            width: 20px; height: 20px; background: #fff; border-radius: 50%; 
+            position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); 
+            pointer-events: none; box-shadow: 0 0 5px #000;
+        }
+
+        .hue-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background-color: #771477;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0,0,0,0.8);
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* Remap */
+        .remap-row { display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; width: 100%; }
+        .remap-left { display: flex; gap: 10px; align-items: center; justify-self: start; }
+        .icon-preview { width: 36px; height: 36px; fill: #fff; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+        .map-arrow { color: var(--accent-color); font-size: 1.8rem; justify-self: center; text-align: center; }
+        .remap-right { justify-self: end; display: flex; align-items: center; gap: 10px; }
+        .icon-result { width: 36px; height: 36px; fill: var(--accent-color); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+        .listening-anim { animation: blink 0.5s infinite; color: #ff0; font-weight: bold; font-family: var(--font-pixel); font-size: 1.0rem; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* Footer */
+        .footer-brand {
+            text-align: center; 
+            margin-top: 30px; 
+            padding-top: 15px; 
+            padding-bottom: 20px; 
+            border-top: 1px solid #333;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            flex-shrink: 0;
+        }
+        .logo-img { width: 60px; height: auto; border-radius: 50%; border: 3px solid var(--accent-color); box-shadow: 0 0 15px var(--accent-color); }
+        .brand-text { font-size: 0.8rem; color: #666; font-weight: bold; text-transform: uppercase; text-shadow: none; }
+
+        #svg-defs { display: none; }
+    </style>
+</head>
+<body>
+
+    <svg id="svg-defs">
+        <!-- User Provided Lock Closed -->
+        <symbol id="icon-lock-closed" viewBox="0 0 137 138">
+            <path fill-rule="evenodd" d="m0 17.25h17.13v-17.25h102.75v17.25h17.12v103.5h-17.13v17.25h-102.75v-17.25h-17.12zm34.25 51.75h68.5v-51.75h-68.5zm51.38 51.75l-0.01-17.25h-34.25v17.25z" fill="currentColor"/>
+        </symbol>
+        
+        <!-- User Provided Lock Open -->
+        <symbol id="icon-lock-open" viewBox="0 0 137 138">
+            <path fill-rule="evenodd" d="m0 17.25h17.13v-17.25h102.75v17.25h17.12v16.75h-34.25v-16.75h-68.5v51.75h102.75v51.75h-17.13v17.25h-102.75v-17.25h-17.12zm85.63 103.5v-17.25h-34.25v17.25z" fill="currentColor"/>
+        </symbol>
+
+        <symbol id="icon-dpad-all" viewBox="0 0 100 100"><path d="M40,10 L60,10 L60,40 L90,40 L90,60 L60,60 L60,90 L40,90 L40,60 L10,60 L10,40 L40,40 Z" fill="currentColor"/></symbol>
+        <symbol id="icon-xb-a" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><text x="50" y="70" font-family="Arial" font-weight="900" font-size="55" text-anchor="middle" fill="currentColor">A</text></symbol>
+        <symbol id="icon-xb-b" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><text x="50" y="70" font-family="Arial" font-weight="900" font-size="55" text-anchor="middle" fill="currentColor">B</text></symbol>
+        <symbol id="icon-xb-x" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><text x="50" y="70" font-family="Arial" font-weight="900" font-size="55" text-anchor="middle" fill="currentColor">X</text></symbol>
+        <symbol id="icon-xb-y" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><text x="50" y="70" font-family="Arial" font-weight="900" font-size="55" text-anchor="middle" fill="currentColor">Y</text></symbol>
+        <symbol id="icon-xb-lb" viewBox="0 0 100 50"><rect x="5" y="5" width="90" height="40" rx="10" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="32" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">LB</text></symbol>
+        <symbol id="icon-xb-rb" viewBox="0 0 100 50"><rect x="5" y="5" width="90" height="40" rx="10" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="32" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">RB</text></symbol>
+        <symbol id="icon-xb-lt" viewBox="0 0 100 100"><path d="M20,20 Q50,5 80,20 L85,70 Q50,90 15,70 Z" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="55" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">LT</text></symbol>
+        <symbol id="icon-xb-rt" viewBox="0 0 100 100"><path d="M20,20 Q50,5 80,20 L85,70 Q50,90 15,70 Z" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="55" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">RT</text></symbol>
+        <symbol id="icon-xb-view" viewBox="0 0 100 60"><rect x="15" y="15" width="70" height="30" rx="4" stroke="currentColor" stroke-width="5" fill="none"/><rect x="28" y="22" width="20" height="16" fill="currentColor"/><rect x="55" y="22" width="12" height="16" fill="currentColor"/></symbol>
+        <symbol id="icon-xb-menu" viewBox="0 0 100 60"><rect x="15" y="15" width="70" height="30" rx="4" stroke="currentColor" stroke-width="5" fill="none"/><line x1="30" y1="23" x2="70" y2="23" stroke="currentColor" stroke-width="4"/><line x1="30" y1="30" x2="70" y2="30" stroke="currentColor" stroke-width="4"/><line x1="30" y1="37" x2="70" y2="37" stroke="currentColor" stroke-width="4"/></symbol>
+        <symbol id="icon-ps-cross" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><path d="M35,35 L65,65 M65,35 L35,65" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></symbol>
+        <symbol id="icon-ps-circle" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><circle cx="50" cy="50" r="22" stroke="currentColor" stroke-width="10" fill="none"/></symbol>
+        <symbol id="icon-ps-square" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><rect x="32" y="32" width="36" height="36" stroke="currentColor" stroke-width="10" fill="none"/></symbol>
+        <symbol id="icon-ps-triangle" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="8" fill="none"/><path d="M50,28 L72,65 L28,65 Z" stroke="currentColor" stroke-width="10" fill="none"/></symbol>
+        <symbol id="icon-ps-l1" viewBox="0 0 100 50"><rect x="5" y="5" width="90" height="40" rx="10" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="32" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">L1</text></symbol>
+        <symbol id="icon-ps-r1" viewBox="0 0 100 50"><rect x="5" y="5" width="90" height="40" rx="10" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="32" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">R1</text></symbol>
+        <symbol id="icon-ps-l2" viewBox="0 0 100 100"><path d="M20,20 Q50,5 80,20 L85,70 Q50,90 15,70 Z" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="55" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">L2</text></symbol>
+        <symbol id="icon-ps-r2" viewBox="0 0 100 100"><path d="M20,20 Q50,5 80,20 L85,70 Q50,90 15,70 Z" stroke="currentColor" stroke-width="6" fill="none"/><text x="50" y="55" font-family="Arial" font-weight="bold" font-size="24" text-anchor="middle" fill="currentColor">R2</text></symbol>
+        <symbol id="icon-ps-share" viewBox="0 0 100 60"><rect x="10" y="10" width="80" height="40" rx="20" stroke="currentColor" stroke-width="5" fill="none"/><text x="50" y="35" font-family="Arial" font-weight="bold" font-size="16" text-anchor="middle" fill="currentColor">SHARE</text></symbol>
+        <symbol id="icon-ps-options" viewBox="0 0 100 60"><rect x="10" y="10" width="80" height="40" rx="20" stroke="currentColor" stroke-width="5" fill="none"/><text x="50" y="35" font-family="Arial" font-weight="bold" font-size="16" text-anchor="middle" fill="currentColor">OPT</text></symbol>
+        <symbol id="icon-touchpad" viewBox="0 0 100 60"><rect x="5" y="5" width="90" height="50" rx="2" stroke="currentColor" stroke-width="5" fill="none"/><text x="50" y="35" font-family="Arial" font-size="14" text-anchor="middle" fill="currentColor">TOUCH</text></symbol>
+        <symbol id="icon-dpad-up" viewBox="0 0 100 100"><path d="M50,15 L80,45 L20,45 Z" fill="currentColor"/><rect x="35" y="45" width="30" height="30" fill="currentColor"/></symbol>
+        <symbol id="icon-dpad-down" viewBox="0 0 100 100"><path d="M50,85 L20,55 L80,55 Z" fill="currentColor"/><rect x="35" y="25" width="30" height="30" fill="currentColor"/></rect><symbol id="icon-dpad-left" viewBox="0 0 100 100"><path d="M15,50 L45,20 L45,80 Z" fill="currentColor"/><rect x="45" y="35" width="30" height="30" fill="currentColor"/></symbol>
+        <symbol id="icon-dpad-right" viewBox="0 0 100 100"><path d="M85,50 L55,80 L55,20 Z" fill="currentColor"/><rect x="25" y="35" width="30" height="30" fill="currentColor"/></symbol>
+        <symbol id="icon-stick-l" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="50" cy="50" r="25" fill="currentColor"/><text x="50" y="58" font-family="Arial" font-weight="900" font-size="24" text-anchor="middle" fill="#000">L</text></symbol>
+        <symbol id="icon-stick-r" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="50" cy="50" r="25" fill="currentColor"/><text x="50" y="58" font-family="Arial" font-weight="900" font-size="24" text-anchor="middle" fill="#000">R</text></symbol>
+    </svg>
+
+    <div id="app-container">
+        <div id="filter-wrapper">
+            <iframe id="target-frame" src="" allow="gamepad"></iframe>
+        </div>
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="notification-toast">
+            <svg id="toast-icon" class="toast-icon"></svg>
+            <div id="toast-title" class="toast-title"></div>
+            <div id="toast-desc" class="toast-desc"></div>
+        </div>
+
+        <div id="settings-menu">
+            <div id="menu-content" class="menu-container"></div>
+        </div>
+    </div>
+
+<script>
+// URL Constant
+const CTRL_URL = "https://gamepadviewer.com/?p=1&css=https%3A%2F%2Fhuntersdesingspaid.github.io%2FEasySMX_X05PRO%2Fnervendes%2FEasySMX_X05PRO.css";
+
+let CONFIG = {
+    hue: 0, sat: 100, 
+    rgbMode: false, rgbSpeed: 10,
+    menuOpac: 95,
+    scale: 100,
+    map: {} 
+};
+
+for(let i=0; i<18; i++) CONFIG.map[i] = i;
+
+let DRAFT_MAP = {};
+
+const BTN_DEFS = [
+    { id:0, n:'Cross/A', i1:'#icon-ps-cross', i2:'#icon-xb-a' },
+    { id:1, n:'Circle/B', i1:'#icon-ps-circle', i2:'#icon-xb-b' },
+    { id:2, n:'Square/X', i1:'#icon-ps-square', i2:'#icon-xb-x' },
+    { id:3, n:'Triangle/Y', i1:'#icon-ps-triangle', i2:'#icon-xb-y' },
+    { id:4, n:'L1/LB', i1:'#icon-ps-l1', i2:'#icon-xb-lb' },
+    { id:5, n:'R1/RB', i1:'#icon-ps-r1', i2:'#icon-xb-rb' },
+    { id:6, n:'L2/LT', i1:'#icon-ps-l2', i2:'#icon-xb-lt' },
+    { id:7, n:'R2/RT', i1:'#icon-ps-r2', i2:'#icon-xb-rt' },
+    { id:8, n:'Share/View', i1:'#icon-ps-share', i2:'#icon-xb-view' },
+    { id:9, n:'Opt/Menu', i1:'#icon-ps-options', i2:'#icon-xb-menu' },
+    { id:10, n:'L3/LS', i1:'#icon-stick-l', i2:'#icon-stick-l' },
+    { id:11, n:'R3/RS', i1:'#icon-stick-r', i2:'#icon-stick-r' },
+    { id:12, n:'Up', i1:'#icon-dpad-up', i2:'#icon-dpad-up' },
+    { id:13, n:'Down', i1:'#icon-dpad-down', i2:'#icon-dpad-down' },
+    { id:14, n:'Left', i1:'#icon-dpad-left', i2:'#icon-dpad-left' },
+    { id:15, n:'Right', i1:'#icon-dpad-right', i2:'#icon-dpad-right' }
+];
+
+const STATE = {
+    menuOpen: false,
+    menuLocked: false,
+    page: 'main',
+    menuIdx: 0,
+    listeningFor: null,
+    start: { pressed:false, time:0, rel:0 },
+    select: { pressed:false, time:0, rel:0 }, // For Double Tap
+    lastBtns: [], sliderHoldTime: 0,
+    stickState: { u:false, d:false, l:false, r:false },
+    interactEnd: 0,
+    isDimmed: false,
+    toastTimeout: null
+};
+
+const uiMenu = document.getElementById('settings-menu');
+const uiContent = document.getElementById('menu-content');
+const uiTargetFrame = document.getElementById('target-frame');
+const uiToast = document.getElementById('notification-toast');
+const r = document.documentElement;
+
+function loadConfig() {
+    const s = localStorage.getItem('ctrl_overlay_v57_cfg'); 
+    if(s) try { CONFIG = { ...CONFIG, ...JSON.parse(s) }; } catch(e){}
+    
+    CONFIG.scale = Number(CONFIG.scale) || 100;
+    CONFIG.rgbSpeed = Number(CONFIG.rgbSpeed) || 10;
+    CONFIG.hue = Number(CONFIG.hue) || 0;
+    CONFIG.sat = Number(CONFIG.sat) || 100;
+    CONFIG.menuOpac = (CONFIG.menuOpac !== undefined) ? Number(CONFIG.menuOpac) : 95;
+
+    applyIframeUrls();
+    updateVisuals();
+}
+
+function saveConfig() {
+    localStorage.setItem('ctrl_overlay_v57_cfg', JSON.stringify(CONFIG));
+}
+
+function resetSettings() {
+    localStorage.removeItem('ctrl_overlay_v57_cfg');
+    CONFIG.hue = 0; CONFIG.sat = 100; CONFIG.rgbMode = false; CONFIG.menuOpac = 95;
+    CONFIG.scale = 100; CONFIG.rgbSpeed = 10;
+    for(let i=0; i<18; i++) CONFIG.map[i] = i;
+    saveConfig();
+    applyIframeUrls();
+    renderMenu(); updateVisuals();
+}
+
+function resetDraftMapping() {
+    for(let i=0; i<18; i++) DRAFT_MAP[i] = i;
+    renderMenu();
+}
+
+function applyMappingFromDraft() {
+    CONFIG.map = { ...DRAFT_MAP };
+    saveConfig();
+    applyIframeUrls();
+    STATE.page = 'main'; STATE.menuIdx = 0; renderMenu();
+}
+
+function enterRemapMode(mode) {
+    DRAFT_MAP = { ...CONFIG.map };
+    STATE.page = mode;
+    STATE.menuIdx = 0;
+    renderMenu();
+}
+
+function applyIframeUrls() {
+    let ctrlMappings = [];
+    for(let i=0; i<18; i++) {
+        if(CONFIG.map[i] !== i) {
+            ctrlMappings.push({
+                targetType: "buttons", target: i.toString(), disabled: false,
+                choiceType: "buttons", choice: CONFIG.map[i].toString()
+            });
+        }
+    }
+    
+    let ctrlUrl = CTRL_URL;
+    if(ctrlMappings.length > 0) ctrlUrl += `&map=${encodeURIComponent(JSON.stringify({ mapping: ctrlMappings }))}`;
+
+    if(uiTargetFrame.src !== ctrlUrl) uiTargetFrame.src = ctrlUrl;
+}
+
+function renderMenu() {
+    let h = `<div class="help-bar">
+                <div class="help-group"><svg class="icon-tiny"><use href="#icon-dpad-all"></use></svg><span>Nav</span></div><span class="help-sep">|</span>
+                <div class="help-group"><svg class="icon-tiny"><use href="#icon-stick-r"></use></svg><span>Scroll</span></div><span class="help-sep">|</span>
+                <div class="help-group"><svg class="icon-tiny"><use href="#icon-ps-cross"></use></svg><svg class="icon-tiny"><use href="#icon-xb-a"></use></svg><span>Ok</span></div><span class="help-sep">|</span>
+                <div class="help-group"><svg class="icon-tiny"><use href="#icon-ps-circle"></use></svg><svg class="icon-tiny"><use href="#icon-xb-b"></use></svg><span>Back</span></div>
+             </div>`;
+
+    if(STATE.page === 'main') {
+        h += `<div class="menu-header">GLOBAL SETTINGS</div>
+              ${sliderHTML('hue', 'Hue', CONFIG.hue, 0, 360, '°')}
+              ${sliderHTML('sat', 'Saturation', CONFIG.sat, 0, 200, '%')}
+              <div class="menu-item" data-id="rgbMode">
+                 <span class="menu-label">RGB Animation</span><span class="menu-val">${CONFIG.rgbMode?'ON':'OFF'}</span>
+              </div>
+              ${sliderHTML('rgbSpeed', 'Anim Speed', CONFIG.rgbSpeed, 5, 50, '')}
+              ${sliderHTML('scale', 'Scale', CONFIG.scale, 20, 100, '%')}
+              
+              <div class="menu-header">LAYOUT & INPUT</div>
+              
+              <div class="menu-item btn-action" data-id="goto_remap_ctrl">REMAP CONTROLLER</div>
+
+              <div class="menu-header">SYSTEM</div>
+              ${sliderHTML('menuOpac', 'Menu Opacity', CONFIG.menuOpac, 0, 100, '%')}
+              <div class="menu-item btn-action btn-danger" data-id="reset_settings">RESET ALL</div>`;
+        
+        h += `<div class="footer-brand"><img src="https://i.imgur.com/23GvUxq.png" class="logo-img"><div class="brand-text">Created by Hunters Designs</div></div>`;
+    } 
+    else if(STATE.page === 'remap_ctrl') {
+        h += `<div class="menu-header">REMAP CONTROLLER</div>`;
+        BTN_DEFS.forEach(b => {
+            if(b.id === 10 || b.id === 11 || b.id >= 16) return;
+            const mappedId = DRAFT_MAP[b.id];
+            const iconHTML = getBtnIconHTML(mappedId);
+            const isListening = (STATE.listeningFor === b.id);
+            const isDpad = (b.id >= 12 && b.id <= 15);
+            let leftIcons = `<svg class="icon-preview"><use href="${b.i1}"></use></svg>`;
+            if(!isDpad) leftIcons += `<svg class="icon-preview"><use href="${b.i2}"></use></svg>`;
+            h += `<div class="menu-item" data-id="remap_${b.id}">
+                    <div class="remap-row">
+                        <div class="remap-left">${leftIcons}</div>
+                        <span class="map-arrow">➔</span>
+                        <div class="remap-right">
+                            ${isListening ? `<span class="listening-anim">PRESS BTN...</span>` : iconHTML}
+                        </div>
+                    </div>
+                  </div>`;
+        });
+        h += `<div class="menu-item btn-action" data-id="apply_mapping">APPLY MAPPING</div>`;
+        h += `<div class="btn-row" style="margin-top:0;">
+                <div class="menu-item btn-action btn-danger" data-id="reset_map_only">RESET</div>
+                <div class="menu-item btn-action" data-id="back_no_save">CANCEL</div>
+              </div>`;
+    }
+
+    uiContent.innerHTML = h;
+    updateVisuals();
+    updateMenuHighlight();
+}
+
+function sliderHTML(id, label, val, min, max, unit) {
+    val = Number(val);
+    if(isNaN(val)) val = min;
+    const range = max - min;
+    const pct = ((val - min) / range) * 100;
+    
+    let valContent = "";
+    if(id === 'hue') valContent += `<span id="hue-dot" class="hue-dot"></span>`;
+    valContent += Math.round(val) + unit;
+
+    return `<div class="menu-item" data-id="${id}" data-type="slider" data-min="${min}" data-max="${max}">
+                <span class="menu-label">${label}</span>
+                <div class="slider-wrapper">
+                    <div class="slider-val-disp" id="disp-${id}">${valContent}</div>
+                    <div class="slider-track"><div class="slider-fill" id="fill-${id}" style="width:${pct}%"></div><div class="slider-thumb" id="thumb-${id}" style="left:${pct}%"></div></div>
+                </div>
+            </div>`;
+}
+
+function getBtnIconHTML(physId) {
+    const def = BTN_DEFS.find(x => x.id === physId);
+    if(def) {
+        const isDpad = (physId >= 12 && physId <= 15);
+        let html = `<svg class="icon-result"><use href="${def.i1}"></use></svg>`;
+        if(!isDpad) html += `<svg class="icon-result"><use href="${def.i2}"></use></svg>`;
+        return html;
+    }
+    return `<span class="mapped-btn">BTN ${physId}</span>`;
+}
+
+function showToast(iconId, title, desc) {
+    const iconEl = document.getElementById('toast-icon');
+    const titleEl = document.getElementById('toast-title');
+    const descEl = document.getElementById('toast-desc');
+    
+    iconEl.innerHTML = `<use href="#${iconId}"></use>`;
+    titleEl.innerText = title;
+    descEl.innerText = desc;
+    
+    // Reset classes to trigger re-flow/animation
+    uiToast.classList.remove('visible');
+    uiToast.classList.remove('hiding');
+    
+    // Force Reflow
+    void uiToast.offsetWidth;
+    
+    uiToast.classList.add('visible');
+    
+    if(STATE.toastTimeout) clearTimeout(STATE.toastTimeout);
+    STATE.toastTimeout = setTimeout(() => {
+        uiToast.classList.add('hiding'); // Trigger shrinking exit
+        setTimeout(() => {
+             uiToast.classList.remove('visible');
+             uiToast.classList.remove('hiding');
+        }, 400); // Matches animation time
+    }, 5000);
+}
+
+function loop() {
+    requestAnimationFrame(loop);
+    
+    const menuEl = document.getElementById('menu-content');
+    if(menuEl) {
+        if(Date.now() < STATE.interactEnd) {
+            if(!STATE.isDimmed) {
+                menuEl.style.opacity = '0.2';
+                STATE.isDimmed = true;
+            }
+        } else {
+            if(STATE.isDimmed) {
+                menuEl.style.opacity = '1';
+                STATE.isDimmed = false;
+            }
+        }
+    }
+
+    const gp = navigator.getGamepads()[0];
+    
+    if(CONFIG.rgbMode) {
+        CONFIG.hue = (CONFIG.hue + (CONFIG.rgbSpeed * 0.06)) % 360;
+        updateVisuals();
+        
+        if(STATE.menuOpen) {
+            const elF = document.getElementById('fill-hue');
+            const elT = document.getElementById('thumb-hue');
+            const elD = document.getElementById('disp-hue');
+            if(elF && elT && elD) {
+                const pct = (CONFIG.hue / 360) * 100;
+                elF.style.width = pct + '%';
+                elT.style.left = pct + '%';
+                const dot = elD.querySelector('.hue-dot');
+                elD.innerHTML = '';
+                if(dot) elD.appendChild(dot);
+                elD.innerHTML += Math.round(CONFIG.hue) + '°';
+            }
+        }
+    }
+
+    if(!gp) return;
+
+    const currBtns = []; 
+    for(let i=0; i<gp.buttons.length; i++) currBtns[i] = gp.buttons[i].pressed;
+    const pressed = (i) => currBtns[i] && !STATE.lastBtns[i];
+
+    // --- LOCK TOGGLE LOGIC (SELECT BUTTON - ID 8) ---
+    if(pressed(8)) {
+        let now = Date.now();
+        if(now - STATE.select.rel < 300) {
+            // Double Tap Detected!
+            STATE.menuLocked = !STATE.menuLocked;
+            if(STATE.menuLocked) {
+                showToast('icon-lock-closed', 'MENU LOCKED', 'Menu is now locked');
+                // Force close if open
+                if(STATE.menuOpen) toggleMenu();
+            } else {
+                showToast('icon-lock-open', 'MENU UNLOCKED', 'Menu is now unlocked');
+            }
+        }
+        STATE.select.rel = now;
+    }
+
+    // --- START BUTTON (MENU TOGGLE - ID 9) ---
+    if(pressed(9)) { 
+        STATE.start.pressed = true; 
+        STATE.start.time = Date.now(); 
+    } 
+    else if(!currBtns[9] && STATE.start.pressed) {
+        STATE.start.pressed = false;
+        if(Date.now() - STATE.start.rel < 400) {
+            // Short release
+            if(STATE.menuLocked) {
+                showToast('icon-lock-closed', 'MENU LOCKED', 'Double tap Select to unlock');
+            } else {
+                toggleMenu();
+            }
+        }
+        STATE.start.rel = Date.now();
+    }
+
+    if(STATE.listeningFor !== null) {
+        for(let i=0; i<gp.buttons.length; i++) {
+            if(pressed(i)) { 
+                DRAFT_MAP[STATE.listeningFor] = i;
+                STATE.listeningFor = null;
+                renderMenu();
+                break; 
+            }
+        }
+    } 
+    else if(STATE.menuOpen) {
+        handleMenuInput(gp, pressed);
+    }
+
+    STATE.lastBtns = currBtns;
+}
+
+function handleMenuInput(gp, pressed) {
+    const axes = gp.axes;
+    const sUp = axes[1] < -0.5; const sDown = axes[1] > 0.5;
+    const sLeft = axes[0] < -0.5; const sRight = axes[0] > 0.5;
+    
+    const rsY = axes[3];
+    if(Math.abs(rsY) > 0.2) uiContent.scrollTop += rsY * 15;
+
+    if(!STATE.stickState.u && sUp || pressed(12)) changeSel(-1);
+    if(!STATE.stickState.d && sDown || pressed(13)) changeSel(1);
+    STATE.stickState = { u:sUp, d:sDown, l:sLeft, r:sRight };
+
+    const items = document.querySelectorAll('.menu-item');
+    if(STATE.menuIdx >= items.length) STATE.menuIdx = items.length - 1;
+    const item = items[STATE.menuIdx];
+    if(!item) return;
+
+    const id = item.dataset.id;
+    const isSlider = item.dataset.type === 'slider';
+
+    if(isSlider) {
+        if(sLeft || sRight || gp.buttons[14].pressed || gp.buttons[15].pressed) {
+            STATE.sliderHoldTime++;
+            let moveTrigger = false;
+            
+            if(STATE.sliderHoldTime === 1) moveTrigger = true;
+            else if(STATE.sliderHoldTime < 30) { if(STATE.sliderHoldTime % 15 === 0) moveTrigger = true; }
+            else if(STATE.sliderHoldTime < 60) { if(STATE.sliderHoldTime % 8 === 0) moveTrigger = true; }
+            else { if(STATE.sliderHoldTime % 4 === 0) moveTrigger = true; }
+
+            if(moveTrigger) {
+                const dir = (sRight || gp.buttons[15].pressed) ? 1 : -1;
+                modifyConfig(id, dir * 5, item);
+            }
+        } else STATE.sliderHoldTime = 0;
+    }
+
+    if(pressed(0)) {
+        if(isSlider) return; 
+        if(id === 'rgbMode') { CONFIG.rgbMode = !CONFIG.rgbMode; renderMenu(); saveConfig(); }
+        else if(id === 'goto_remap_ctrl') { enterRemapMode('remap_ctrl'); }
+        else if(id === 'apply_mapping') { applyMappingFromDraft(); }
+        else if(id === 'reset_map_only') { resetDraftMapping(); }
+        else if(id === 'back_no_save') { STATE.page = 'main'; STATE.menuIdx = 0; renderMenu(); }
+        else if(id === 'reset_settings') { resetSettings(); }
+        else if(id.startsWith('remap_')) { STATE.listeningFor = parseInt(id.replace('remap_', '')); renderMenu(); }
+    }
+    
+    if(pressed(1)) {
+        if(STATE.page !== 'main') { STATE.page = 'main'; STATE.menuIdx = 0; renderMenu(); }
+        else toggleMenu();
+    }
+}
+
+function modifyConfig(id, amount, item) {
+    const min = parseInt(item.dataset.min);
+    const max = parseInt(item.dataset.max);
+    let val = CONFIG[id];
+    val += amount;
+    if(id === 'hue') { let r = 360; val = ((((val) % r) + r) % r); } 
+    else { val = Math.min(Math.max(val, min), max); }
+    val = Math.round(val / 5) * 5;
+    CONFIG[id] = val;
+    saveConfig();
+
+    if(id === 'hue' || id === 'sat' || id === 'scale') {
+        STATE.interactEnd = Date.now() + 300;
+    }
+
+    let dispUnit = '%';
+    if(id === 'hue') dispUnit = '°';
+    if(id === 'rgbSpeed') dispUnit = '';
+    
+    const dispEl = item.querySelector('.slider-val-disp');
+    let content = "";
+    if(id === 'hue') content += `<span id="hue-dot" class="hue-dot"></span>`;
+    content += Math.round(CONFIG[id]) + dispUnit;
+    dispEl.innerHTML = content;
+
+    const pct = ((CONFIG[id] - min) / (max - min)) * 100;
+    item.querySelector('.slider-fill').style.width = pct + '%';
+    item.querySelector('.slider-thumb').style.left = pct + '%';
+    updateVisuals();
+}
+
+function changeSel(dir) {
+    const items = document.querySelectorAll('.menu-item');
+    let newIdx = STATE.menuIdx + dir;
+    if(newIdx < 0) newIdx = 0;
+    if(newIdx >= items.length) newIdx = items.length - 1;
+    STATE.menuIdx = newIdx;
+    updateMenuHighlight();
+}
+
+function updateMenuHighlight() {
+    const items = document.querySelectorAll('.menu-item');
+    items.forEach((el, i) => {
+        if(i === STATE.menuIdx) { 
+            el.classList.add('selected'); 
+            el.scrollIntoView({block:'nearest'}); 
+        }
+        else el.classList.remove('selected');
+    });
+}
+
+function toggleMenu() {
+    STATE.menuOpen = !STATE.menuOpen;
+    uiMenu.className = STATE.menuOpen ? 'open' : '';
+    if(STATE.menuOpen) { 
+        STATE.page = 'main'; 
+        STATE.menuIdx = 0; 
+        renderMenu();
+        uiContent.scrollTop = 0;
+    }
+}
+
+function updateVisuals() {
+    r.style.setProperty('--global-hue', CONFIG.hue + 'deg'); 
+    r.style.setProperty('--global-sat', CONFIG.sat + '%');
+    r.style.setProperty('--content-scale', CONFIG.scale / 100);
+    
+    const menuEl = document.querySelector('.menu-container');
+    const toastEl = document.getElementById('notification-toast');
+
+    /* Color Gradient specifically updated to match the #771477 (hsl(300, 71%, 27%)) Base Theme */
+    const bg = `radial-gradient(circle at center, hsla(300, 71%, 27%, ${CONFIG.menuOpac/100}) 0%, #050505 100%)`;
+    
+    if(menuEl) {
+        menuEl.style.background = bg;
+        if(CONFIG.menuOpac <= 0) menuEl.style.background = 'transparent';
+    }
+    
+    if(toastEl) {
+        toastEl.style.background = bg;
+        if(CONFIG.menuOpac <= 0) toastEl.style.background = '#050505';
+    }
+
+    const dot = document.getElementById('hue-dot');
+    if(dot) {
+        let adjustedHue = (300 + CONFIG.hue) % 360;
+        let adjustedSat = 71 * (CONFIG.sat / 100);
+        dot.style.backgroundColor = `hsl(${adjustedHue}, ${adjustedSat}%, 27%)`;
+    }
+}
+
+loadConfig(); loop();
+</script>
+</body>
+</html>
