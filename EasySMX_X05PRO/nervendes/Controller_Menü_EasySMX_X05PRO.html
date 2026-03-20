@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Controller Menü | EasySMX X05PRO</title>
+    <title>Controller Menü | Ps5</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -47,10 +47,10 @@
             width: 100%; height: 100%;
             position: relative;
             filter: hue-rotate(var(--global-hue)) saturate(var(--global-sat));
-            will-change: filter, transform;
             transform: scale(var(--content-scale));
             transform-origin: center center;
             transition: transform 0.1s;
+            /* 'will-change' entfernt, da dies GIFs in Iframes einfrieren lässt */
         }
 
         iframe { border: none; display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -296,7 +296,7 @@
         <symbol id="icon-touchpad" viewBox="0 0 100 60"><rect x="5" y="5" width="90" height="50" rx="2" stroke="currentColor" stroke-width="5" fill="none"/><text x="50" y="35" font-family="Arial" font-size="14" text-anchor="middle" fill="currentColor">TOUCH</text></symbol>
         <symbol id="icon-dpad-up" viewBox="0 0 100 100"><path d="M50,15 L80,45 L20,45 Z" fill="currentColor"/><rect x="35" y="45" width="30" height="30" fill="currentColor"/></symbol>
         <symbol id="icon-dpad-down" viewBox="0 0 100 100"><path d="M50,85 L20,55 L80,55 Z" fill="currentColor"/><rect x="35" y="25" width="30" height="30" fill="currentColor"/></rect><symbol id="icon-dpad-left" viewBox="0 0 100 100"><path d="M15,50 L45,20 L45,80 Z" fill="currentColor"/><rect x="45" y="35" width="30" height="30" fill="currentColor"/></symbol>
-        <symbol id="icon-dpad-right" viewBox="0 0 100 100"><path d="M85,50 L55,80 L55,20 Z" fill="currentColor"/><rect x="25" y="35" width="30" height="30" fill="currentColor"/></symbol>
+        <symbol id="icon-dpad-right" viewBox="0 100 100"><path d="M85,50 L55,80 L55,20 Z" fill="currentColor"/><rect x="25" y="35" width="30" height="30" fill="currentColor"/></symbol>
         <symbol id="icon-stick-l" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="50" cy="50" r="25" fill="currentColor"/><text x="50" y="58" font-family="Arial" font-weight="900" font-size="24" text-anchor="middle" fill="#000">L</text></symbol>
         <symbol id="icon-stick-r" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="5" fill="none"/><circle cx="50" cy="50" r="25" fill="currentColor"/><text x="50" y="58" font-family="Arial" font-weight="900" font-size="24" text-anchor="middle" fill="#000">R</text></symbol>
     </svg>
